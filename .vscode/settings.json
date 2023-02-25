@@ -1,0 +1,6 @@
+{
+    "DockerRun.DisableDockerrc": true,
+    "iisexpress.appcmdPath": "",
+    "workbench.colorCustomizations": {},
+    "iisexpress.iisExpressPath": "C:\\Program Files\\IIS Express\\iisexpress.exe"
+}

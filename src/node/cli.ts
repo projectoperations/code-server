@@ -3,7 +3,15 @@ import { promises as fs } from "fs"
 import { load } from "js-yaml"
 import * as os from "os"
 import * as path from "path"
-import { canConnect, generateCertificate, generatePassword, humanPath, paths, isNodeJSErrnoException } from "./util"
+import {
+  canConnect,
+  generateCertificate,
+  generatePassword,
+  humanPath,
+  paths,
+  isNodeJSErrnoException,
+  splitOnFirstEquals,
+} from "./util"
 
 const DEFAULT_SOCKET_PATH = path.join(os.tmpdir(), "vscode-ipc")
 
@@ -292,19 +300,6 @@ export const optionDescriptions = (opts: Partial<Options<Required<UserProvidedAr
   })
 }
 
-export function splitOnFirstEquals(str: string): string[] {
-  // we use regex instead of "=" to ensure we split at the first
-  // "=" and return the following substring with it
-  // important for the hashed-password which looks like this
-  // $argon2i$v=19$m=4096,t=3,p=1$0qR/o+0t00hsbJFQCKSfdQ$oFcM4rL6o+B7oxpuA4qlXubypbBPsf+8L531U7P9HYY
-  // 2 means return two items
-  // Source: https://stackoverflow.com/a/4607799/3015595
-  // We use the ? to say the the substr after the = is optional
-  const split = str.split(/=(.+)?/, 2)
-
-  return split
-}
-
 /**
  * Parse arguments into UserProvidedArgs.  This should not go beyond checking
  * that arguments are valid types and have values when required.
@@ -438,17 +433,21 @@ export const parse = (
     throw new Error("--cert-key is missing")
   }
 
-  logger.debug(() => [
-    `parsed ${opts?.configFile ? "config" : "command line"}`,
-    field("args", {
-      ...args,
-      password: args.password ? "<redacted>" : undefined,
-      "hashed-password": args["hashed-password"] ? "<redacted>" : undefined,
-      "github-auth": args["github-auth"] ? "<redacted>" : undefined,
-    }),
-  ])
+  logger.debug(() => [`parsed ${opts?.configFile ? "config" : "command line"}`, field("args", redactArgs(args))])
 
   return args
+}
+
+/**
+ * Redact sensitive information from arguments for logging.
+ */
+export const redactArgs = (args: UserProvidedArgs): UserProvidedArgs => {
+  return {
+    ...args,
+    password: args.password ? "<redacted>" : undefined,
+    "hashed-password": args["hashed-password"] ? "<redacted>" : undefined,
+    "github-auth": args["github-auth"] ? "<redacted>" : undefined,
+  }
 }
 
 /**
@@ -576,6 +575,9 @@ export async function setDefaults(cliArgs: UserProvidedArgs, configArgs?: Config
   // Filter duplicate proxy domains and remove any leading `*.`.
   const proxyDomains = new Set((args["proxy-domain"] || []).map((d) => d.replace(/^\*\./, "")))
   args["proxy-domain"] = Array.from(proxyDomains)
+  if (args["proxy-domain"].length > 0 && !process.env.VSCODE_PROXY_URI) {
+    process.env.VSCODE_PROXY_URI = `{{port}}.${args["proxy-domain"][0]}`
+  }
 
   if (typeof args._ === "undefined") {
     args._ = []

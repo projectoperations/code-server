@@ -88,6 +88,12 @@ app (PWA):
 1. Start the editor
 2. Click the **plus** icon in the URL toolbar to install the PWA
 
+If you use Firefox, you can use the appropriate extension to install PWA.
+
+1. Go to the installation [website](https://addons.mozilla.org/en-US/firefox/addon/pwas-for-firefox/) of the add-on
+2. Add the add-on to Firefox
+3. Follow the os-specific instructions on how to install the runtime counterpart
+
 For other browsers, you'll have to remap keybindings for shortcuts to work.
 
 ## Why can't code-server use Microsoft's extension marketplace?
@@ -390,19 +396,13 @@ Theia doesn't allow you to reuse your existing VS Code config.
 ## What's the difference between code-server and OpenVSCode-Server?
 
 code-server and OpenVSCode-Server both allow you to access VS Code via a
-browser. The two projects also use their own [forks of VS Code](https://github.com/coder/vscode) to
-leverage modern VS Code APIs and stay up to date with the upsteam version.
+browser. OpenVSCode-Server is a direct fork of VS Code with changes comitted
+directly while code-server pulls VS Code in via a submodule and makes changes
+via patch files.
 
-However, OpenVSCode-Server is scoped at only making VS Code available in the web browser.
-code-server includes some other features:
-
-- password auth
-- proxy web ports
-- certificate support
-- plugin API
-- settings sync (coming soon)
-
-For more details, see [this discussion post](https://github.com/coder/code-server/discussions/4267#discussioncomment-1411583).
+However, OpenVSCode-Server is scoped at only making VS Code available as-is in
+the web browser. code-server contains additional changes to make the self-hosted
+experience better (see the next section for details).
 
 ## What's the difference between code-server and GitHub Codespaces?
 
@@ -410,8 +410,24 @@ Both code-server and GitHub Codespaces allow you to access VS Code via a
 browser. GitHub Codespaces, however, is a closed-source, paid service offered by
 GitHub and Microsoft.
 
-On the other hand, code-server is self-hosted, free, open-source, and
-can be run on any machine with few limitations.
+On the other hand, code-server is self-hosted, free, open-source, and can be run
+on any machine with few limitations.
+
+Specific changes include:
+
+- Password authentication
+- The ability to host at sub-paths
+- Self-contained web views that do not call out to Microsoft's servers
+- The ability to use your own marketplace and collect your own telemetry
+- Built-in proxy for accessing ports on the remote machine integrated into
+  VS Code's ports panel
+- Wrapper process that spawns VS Code on-demand and has a separate CLI
+- Notification when updates are available
+- [Some other things](https://github.com/coder/code-server/tree/main/patches)
+
+Some of these changes appear very unlikely to ever be adopted by Microsoft.
+Some may make their way upstream, further closing the gap, but at the moment it
+looks like there will always be some subtle differences.
 
 ## Does code-server have any security login validation?
 

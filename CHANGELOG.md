@@ -20,6 +20,62 @@ Code v99.99.999
 
 -->
 
+## Unreleased
+
+Code v1.78.2
+
+## [4.13.0](https://github.com/coder/code-server/releases/tag/v4.13.0) - 2023-05-19
+
+Code v1.78.2
+
+### Changed
+
+- Updated to Code 1.78.2.
+
+### Fixed
+
+- Proxying files that contain non-ASCII characters.
+- Origin check when X-Forwarded-Host contains comma-separated hosts.
+
+## [4.12.0](https://github.com/coder/code-server/releases/tag/v4.12.0) - 2023-04-21
+
+Code v1.77.3
+
+### Changed
+
+- Updated to Code 1.77.3
+- Ports panel will use domain-based proxy (instead of the default path-based
+  proxy) when set via --proxy-domain.
+- Apply --app-name to the PWA title.
+
+### Added
+
+- Thai translation for login page.
+- Debug logs around the origin security check. If you are getting forbidden
+  errors on web sockets please run code-server with `--log debug` to see why the
+  requests are being blocked.
+
+## [4.11.0](https://github.com/coder/code-server/releases/tag/v4.11.0) - 2023-03-16
+
+Code v1.76.1
+
+### Changed
+
+- Updated to Code 1.76.1
+
+## [4.10.1](https://github.com/coder/code-server/releases/tag/v4.10.1) - 2023-03-04
+
+Code v1.75.1
+
+### Security
+
+Added an origin check to web sockets to prevent cross-site hijacking attacks on
+users using older or niche browser that do not support SameSite cookies and
+attacks across sub-domains that share the same root domain.
+
+The check requires the host header to be set so if you use a reverse proxy
+ensure it forwards that information otherwise web sockets will be blocked.
+
 ## [4.10.0](https://github.com/coder/code-server/releases/tag/v4.10.0) - 2023-02-15
 
 Code v1.75.1

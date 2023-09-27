@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# This is due to an upstream issue with RHEL7/CentOS 7 comptability with node-argon2
-# See: https://github.com/cdr/code-server/pull/3422#pullrequestreview-677765057
-export npm_config_build_from_source=true
-
 main() {
   cd "$(dirname "${0}")/../.."
 
@@ -23,6 +19,8 @@ main() {
   mkdir -p "$RELEASE_PATH/lib"
   rsync ./ci/build/code-server.sh "$RELEASE_PATH/bin/code-server"
   rsync "$node_path" "$RELEASE_PATH/lib/node"
+
+  chmod 755 "$RELEASE_PATH/lib/node"
 
   pushd "$RELEASE_PATH"
   npm install --unsafe-perm --omit=dev

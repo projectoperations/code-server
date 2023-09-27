@@ -1,13 +1,12 @@
 import { field, logger } from "@coder/logger"
 import http from "http"
-import * as os from "os"
 import { Disposable } from "../common/emitter"
 import { plural } from "../common/util"
 import { createApp, ensureAddress } from "./app"
 import { AuthType, DefaultedArgs, Feature, SpawnCodeCli, toCodeArgs, UserProvidedArgs } from "./cli"
 import { commit, version } from "./constants"
 import { register } from "./routes"
-import { humanPath, isDirectory, loadAMDModule, open } from "./util"
+import { isDirectory, loadAMDModule, open } from "./util"
 
 /**
  * Return true if the user passed an extension-related VS Code flag.
@@ -109,8 +108,8 @@ export const runCodeServer = async (
 ): Promise<{ dispose: Disposable["dispose"]; server: http.Server }> => {
   logger.info(`code-server ${version} ${commit}`)
 
-  logger.info(`Using user-data-dir ${humanPath(os.homedir(), args["user-data-dir"])}`)
-  logger.trace(`Using extensions-dir ${humanPath(os.homedir(), args["extensions-dir"])}`)
+  logger.info(`Using user-data-dir ${args["user-data-dir"]}`)
+  logger.trace(`Using extensions-dir ${args["extensions-dir"]}`)
 
   if (args.auth === AuthType.Password && !args.password && !args["hashed-password"]) {
     throw new Error(
@@ -121,13 +120,10 @@ export const runCodeServer = async (
   const app = await createApp(args)
   const protocol = args.cert ? "https" : "http"
   const serverAddress = ensureAddress(app.server, protocol)
-  const sessionServerAddress = app.editorSessionManagerServer.address()
   const disposeRoutes = await register(app, args)
 
-  logger.info(`Using config file ${humanPath(os.homedir(), args.config)}`)
+  logger.info(`Using config file ${args.config}`)
   logger.info(`${protocol.toUpperCase()} server listening on ${serverAddress.toString()}`)
-  logger.info(`Session server listening on ${sessionServerAddress?.toString()}`)
-
   if (args.auth === AuthType.Password) {
     logger.info("  - Authentication is enabled")
     if (args.usingEnvPassword) {
@@ -135,24 +131,31 @@ export const runCodeServer = async (
     } else if (args.usingEnvHashedPassword) {
       logger.info("    - Using password from $HASHED_PASSWORD")
     } else {
-      logger.info(`    - Using password from ${humanPath(os.homedir(), args.config)}`)
+      logger.info(`    - Using password from ${args.config}`)
     }
   } else {
     logger.info("  - Authentication is disabled")
   }
 
   if (args.cert) {
-    logger.info(`  - Using certificate for HTTPS: ${humanPath(os.homedir(), args.cert.value)}`)
+    logger.info(`  - Using certificate for HTTPS: ${args.cert.value}`)
   } else {
     logger.info("  - Not serving HTTPS")
   }
 
-  if (args["proxy-domain"].length > 0) {
+  if (args["disable-proxy"]) {
+    logger.info("  - Proxy disabled")
+  } else if (args["proxy-domain"].length > 0) {
     logger.info(`  - ${plural(args["proxy-domain"].length, "Proxying the following domain")}:`)
     args["proxy-domain"].forEach((domain) => logger.info(`    - ${domain}`))
   }
   if (process.env.VSCODE_PROXY_URI) {
     logger.info(`Using proxy URI in PORTS tab: ${process.env.VSCODE_PROXY_URI}`)
+  }
+
+  const sessionServerAddress = app.editorSessionManagerServer.address()
+  if (sessionServerAddress) {
+    logger.info(`Session server listening on ${sessionServerAddress.toString()}`)
   }
 
   if (args.enable && args.enable.length > 0) {

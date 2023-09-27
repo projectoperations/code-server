@@ -1,10 +1,9 @@
 import { field, Level, logger } from "@coder/logger"
 import { promises as fs } from "fs"
 import { load } from "js-yaml"
-import * as os from "os"
 import * as path from "path"
-import { generateCertificate, generatePassword, humanPath, paths, splitOnFirstEquals } from "./util"
-import { DEFAULT_SOCKET_PATH, EditorSessionManagerClient } from "./vscodeSocket"
+import { generateCertificate, generatePassword, paths, splitOnFirstEquals } from "./util"
+import { EditorSessionManagerClient } from "./vscodeSocket"
 
 export enum Feature {
   // No current experimental features!
@@ -51,6 +50,8 @@ export interface UserProvidedCodeArgs {
   "disable-file-downloads"?: boolean
   "disable-workspace-trust"?: boolean
   "disable-getting-started-override"?: boolean
+  "disable-proxy"?: boolean
+  "session-socket"?: string
 }
 
 /**
@@ -78,6 +79,7 @@ export interface UserProvidedArgs extends UserProvidedCodeArgs {
   "bind-addr"?: string
   socket?: string
   "socket-mode"?: string
+  "trusted-origins"?: string[]
   version?: boolean
   "proxy-domain"?: string[]
   "reuse-window"?: boolean
@@ -160,6 +162,9 @@ export const options: Options<Required<UserProvidedArgs>> = {
       "Disable update check. Without this flag, code-server checks every 6 hours against the latest github release and \n" +
       "then notifies you once every week that a new release is available.",
   },
+  "session-socket": {
+    type: "string",
+  },
   "disable-file-downloads": {
     type: "boolean",
     description:
@@ -172,6 +177,10 @@ export const options: Options<Required<UserProvidedArgs>> = {
   "disable-getting-started-override": {
     type: "boolean",
     description: "Disable the coder/coder override in the Help: Getting Started page.",
+  },
+  "disable-proxy": {
+    type: "boolean",
+    description: "Disable domain and path proxy routes.",
   },
   // --enable can be used to enable experimental features. These features
   // provide no guarantees.
@@ -204,6 +213,11 @@ export const options: Options<Required<UserProvidedArgs>> = {
 
   socket: { type: "string", path: true, description: "Path to a socket (bind-addr will be ignored)." },
   "socket-mode": { type: "string", description: "File mode of the socket." },
+  "trusted-origins": {
+    type: "string[]",
+    description:
+      "Disables authenticate origin check for trusted origin. Useful if not able to access reverse proxy configuration.",
+  },
   version: { type: "boolean", short: "v", description: "Display version information." },
   _: { type: "string[]" },
 
@@ -459,6 +473,7 @@ export interface DefaultedArgs extends ConfigArgs {
   usingEnvHashedPassword: boolean
   "extensions-dir": string
   "user-data-dir": string
+  "session-socket": string
   /* Positional arguments. */
   _: string[]
 }
@@ -478,6 +493,11 @@ export async function setDefaults(cliArgs: UserProvidedArgs, configArgs?: Config
   if (!args["extensions-dir"]) {
     args["extensions-dir"] = path.join(args["user-data-dir"], "extensions")
   }
+
+  if (!args["session-socket"]) {
+    args["session-socket"] = path.join(args["user-data-dir"], "code-server-ipc.sock")
+  }
+  process.env.CODE_SERVER_SESSION_SOCKET = args["session-socket"]
 
   // --verbose takes priority over --log and --log takes priority over the
   // environment variable.
@@ -546,6 +566,10 @@ export async function setDefaults(cliArgs: UserProvidedArgs, configArgs?: Config
 
   if (process.env.CS_DISABLE_GETTING_STARTED_OVERRIDE?.match(/^(1|true)$/)) {
     args["disable-getting-started-override"] = true
+  }
+
+  if (process.env.CS_DISABLE_PROXY?.match(/^(1|true)$/)) {
+    args["disable-proxy"] = true
   }
 
   const usingEnvHashedPassword = !!process.env.HASHED_PASSWORD
@@ -638,7 +662,7 @@ export async function readConfigFile(configPath?: string): Promise<ConfigArgs> {
     await fs.writeFile(configPath, defaultConfigFile(generatedPassword), {
       flag: "wx", // wx means to fail if the path exists.
     })
-    logger.info(`Wrote default config file to ${humanPath(os.homedir(), configPath)}`)
+    logger.info(`Wrote default config file to ${configPath}`)
   } catch (error: any) {
     // EEXIST is fine; we don't want to overwrite existing configurations.
     if (error.code !== "EEXIST") {
@@ -708,6 +732,9 @@ export function bindAddrFromArgs(addr: Addr, args: UserProvidedArgs): Addr {
   if (args["bind-addr"]) {
     addr = parseBindAddr(args["bind-addr"])
   }
+  if (process.env.CODE_SERVER_HOST) {
+    addr.host = process.env.CODE_SERVER_HOST
+  }
   if (args.host) {
     addr.host = args.host
   }
@@ -739,7 +766,10 @@ function bindAddrFromAllSources(...argsConfig: UserProvidedArgs[]): Addr {
  * existing instance. The arguments here should be the arguments the user
  * explicitly passed on the command line, *NOT DEFAULTS* or the configuration.
  */
-export const shouldOpenInExistingInstance = async (args: UserProvidedArgs): Promise<string | undefined> => {
+export const shouldOpenInExistingInstance = async (
+  args: UserProvidedArgs,
+  sessionSocket: string,
+): Promise<string | undefined> => {
   // Always use the existing instance if we're running from VS Code's terminal.
   if (process.env.VSCODE_IPC_HOOK_CLI) {
     logger.debug("Found VSCODE_IPC_HOOK_CLI")
@@ -747,21 +777,22 @@ export const shouldOpenInExistingInstance = async (args: UserProvidedArgs): Prom
   }
 
   const paths = getResolvedPathsFromArgs(args)
-  const client = new EditorSessionManagerClient(DEFAULT_SOCKET_PATH)
-
-  // If we can't connect to the socket then there's no existing instance.
-  if (!(await client.canConnect())) {
-    return undefined
-  }
+  const client = new EditorSessionManagerClient(sessionSocket)
 
   // If these flags are set then assume the user is trying to open in an
-  // existing instance since these flags have no effect otherwise.
+  // existing instance since these flags have no effect otherwise.  That means
+  // if there is no existing instance we should error rather than falling back
+  // to spawning code-server normally.
   const openInFlagCount = ["reuse-window", "new-window"].reduce((prev, cur) => {
     return args[cur as keyof UserProvidedArgs] ? prev + 1 : prev
   }, 0)
   if (openInFlagCount > 0) {
     logger.debug("Found --reuse-window or --new-window")
-    return await client.getConnectedSocketPath(paths[0])
+    const socketPath = await client.getConnectedSocketPath(paths[0])
+    if (!socketPath) {
+      throw new Error(`No opened code-server instances found to handle ${paths[0]}`)
+    }
+    return socketPath
   }
 
   // It's possible the user is trying to spawn another instance of code-server.
@@ -769,7 +800,11 @@ export const shouldOpenInExistingInstance = async (args: UserProvidedArgs): Prom
   //    code-server is invoked exactly like this: `code-server my-file`).
   // 2. That a file or directory was passed.
   // 3. That the socket is active.
+  // 4. That an instance exists to handle the path (implied by #3).
   if (Object.keys(args).length === 1 && typeof args._ !== "undefined" && args._.length > 0) {
+    if (!(await client.canConnect())) {
+      return undefined
+    }
     const socketPath = await client.getConnectedSocketPath(paths[0])
     if (socketPath) {
       logger.debug("Found existing code-server socket")

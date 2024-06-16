@@ -22,6 +22,185 @@ Code v99.99.999
 
 ## Unreleased
 
+Code v1.90.0
+
+### Fixed
+
+- Cache a call to get CPU information used in telemetry that could result in a
+  lack responsiveness if it was particularly slow.
+
+## [4.90.0](https://github.com/coder/code-server/releases/tag/v4.90.0) - 2024-06-11
+
+Code v1.90.0
+
+### Changed
+
+- Updated to Code 1.90.0.
+- Updated Node to 20.11.1.
+
+### Added
+
+- Send contents to the clipboard in the integrated terminal by piping to
+  `code-server --stdin-to-clipboard` or `code-server -c`.
+
+  You may want to make this an alias:
+
+  ```
+  alias xclip="code-server --stdin-to-clipboard"
+  echo -n "hello world" | xclip
+  ```
+
+## [4.89.1](https://github.com/coder/code-server/releases/tag/v4.89.1) - 2024-04-14
+
+Code v1.89.1
+
+### Changed
+
+- Updated to Code 1.89.1.
+
+## [4.89.0](https://github.com/coder/code-server/releases/tag/v4.89.0) - 2024-04-08
+
+Code v1.89.0
+
+### Changed
+
+- Updated to Code 1.89.0.
+
+## [4.23.1](https://github.com/coder/code-server/releases/tag/v4.23.1) - 2024-04-15
+
+Code v1.88.1
+
+### Changed
+
+- Updated to Code 1.88.1.
+
+## [4.23.0](https://github.com/coder/code-server/releases/tag/v4.23.0) - 2024-04-08
+
+Code v1.88.0
+
+### Changed
+
+- Updated to Code 1.88.0.
+- Updated Node to 18.18.2.
+
+### Fixed
+
+- Fix masking the exit code when failing to install extensions on the command
+  line outside the integrated terminal. Installing extensions inside the
+  integrated terminal still masks the exit code and is an upstream bug.
+
+## [4.22.1](https://github.com/coder/code-server/releases/tag/v4.22.1) - 2024-03-14
+
+Code v1.87.2
+
+### Changed
+
+- Updated to Code 1.87.2.
+- Enable keep-alive for proxy agent.
+
+## [4.22.0](https://github.com/coder/code-server/releases/tag/v4.22.0) - 2024-03-03
+
+Code v1.87.0
+
+### Changed
+
+- Updated to Code 1.87.0.
+
+## [4.21.2](https://github.com/coder/code-server/releases/tag/v4.21.2) - 2024-02-28
+
+Code v1.86.2
+
+### Changed
+
+- Updated to Code 1.86.2.
+
+## [4.21.1](https://github.com/coder/code-server/releases/tag/v4.21.1) - 2024-02-09
+
+Code v1.86.1
+
+### Changed
+
+- Updated to Code 1.86.1.
+- Updated to Node 18.17.1.
+
+### Added
+
+- Docker images for Fedora and openSUSE.
+
+## [4.21.0](https://github.com/coder/code-server/releases/tag/v4.21.0) - 2024-02-05
+
+Code v1.86.0
+
+### Changed
+
+- Updated to Code 1.86.0.
+
+## [4.20.1](https://github.com/coder/code-server/releases/tag/v4.20.1) - 2024-01-22
+
+Code v1.85.2
+
+### Changed
+
+- Updated to Code 1.85.2.
+
+### Fixed
+
+- Query variables are no longer double-encoded when going over the path proxy.
+
+## [4.20.0](https://github.com/coder/code-server/releases/tag/v4.20.0) - 2023-12-21
+
+Code v1.85.1
+
+### Added
+
+- New flag `--disable-file-uploads` to disable uploading files to the remote by
+  drag and drop and to disable opening local files via the "show local" button
+  in the file open prompt. Note that you can still open local files by drag and
+  dropping the file onto the editor pane.
+- Added `wget` to the release image.
+
+### Changed
+
+- Updated to Code 1.85.1.
+- The `--disable-file-downloads` flag will now disable the "show local" button
+  in the file save prompt as well.
+- Debian release image updated to use Bookworm.
+
+## [4.19.1](https://github.com/coder/code-server/releases/tag/v4.19.1) - 2023-11-29
+
+Code v1.84.2
+
+### Fixed
+
+- Fixed an issue where parts of the editor would not load (like the file
+  explorer, source control, etc) when using a workspace file.
+
+## [4.19.0](https://github.com/coder/code-server/releases/tag/v4.19.0) - 2023-11-18
+
+Code v1.84.2
+
+### Changed
+
+- Updated to Code 1.84.2.
+
+## [4.18.0](https://github.com/coder/code-server/releases/tag/v4.18.0) - 2023-10-20
+
+Code v1.83.1
+
+### Changed
+
+- Updated to Code 1.83.1.
+
+## [4.17.1](https://github.com/coder/code-server/releases/tag/v4.17.1) - 2023-09-29
+
+Code v1.82.2
+
+### Fixed
+
+- Make secret storage persistent. For example, logging in with GitHub should
+  persist between browser refreshes and code-server restarts.
+- Issues with argon2 on arm builds should be fixed now.
+
 ## [4.17.0](https://github.com/coder/code-server/releases/tag/v4.17.0) - 2023-09-22
 
 Code v1.82.2
@@ -298,7 +477,7 @@ Code v1.71.0
 
 ### Fixed
 
-- Add flags --unsafe-perm --legacy-peer-deps in `npm-postinstsall.sh` which ensures installing with npm works correctly
+- Add flags --unsafe-perm --legacy-peer-deps in `npm-postinstall.sh` which ensures installing with npm works correctly
 
 ## [4.6.1](https://github.com/coder/code-server/releases/tag/v4.6.1) - 2022-09-31
 

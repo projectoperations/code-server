@@ -48,6 +48,7 @@ export interface UserProvidedCodeArgs {
   "github-auth"?: string
   "disable-update-check"?: boolean
   "disable-file-downloads"?: boolean
+  "disable-file-uploads"?: boolean
   "disable-workspace-trust"?: boolean
   "disable-getting-started-override"?: boolean
   "disable-proxy"?: boolean
@@ -169,6 +170,10 @@ export const options: Options<Required<UserProvidedArgs>> = {
     type: "boolean",
     description:
       "Disable file downloads from Code. This can also be set with CS_DISABLE_FILE_DOWNLOADS set to 'true' or '1'.",
+  },
+  "disable-file-uploads": {
+    type: "boolean",
+    description: "Disable file uploads.",
   },
   "disable-workspace-trust": {
     type: "boolean",
@@ -828,8 +833,8 @@ export interface CodeArgs extends UserProvidedCodeArgs {
   version: boolean
   "without-connection-token"?: boolean
   "without-browser-env-var"?: boolean
-  compatibility: string
-  log: string[] | undefined
+  compatibility?: string
+  log?: string[]
 }
 
 /**
@@ -838,15 +843,12 @@ export interface CodeArgs extends UserProvidedCodeArgs {
 export type SpawnCodeCli = (args: CodeArgs) => Promise<void>
 
 /**
- * Convert our arguments to VS Code server arguments.
+ * Convert our arguments to equivalent VS Code server arguments.
+ * Does not add any extra arguments.
  */
 export const toCodeArgs = async (args: DefaultedArgs): Promise<CodeArgs> => {
   return {
     ...args,
-    "accept-server-license-terms": true,
-    // This seems to be used to make the connection token flags optional (when
-    // set to 1.63) but we have always included them.
-    compatibility: "1.64",
     /** Type casting. */
     help: !!args.help,
     version: !!args.version,

@@ -22,6 +22,33 @@ Code v99.99.999
 
 ## Unreleased
 
+## [4.93.1](https://github.com/coder/code-server/releases/tag/v4.93.1) - 2024-09-23
+
+Code v1.93.1
+
+### Changed
+
+- Updated to Code 1.93.1.
+
+### Added
+
+- Added `--abs-proxy-base-path` flag for when code-server is not at the root.
+
+## [4.92.2](https://github.com/coder/code-server/releases/tag/v4.92.2) - 2024-08-19
+
+Code v1.92.2
+
+### Breaking changes
+
+- Dropped a patch that changed the compile target from es2022 to es2020 because
+  it no longer works with the way VS Code uses static properties. This may break
+  older browsers, so those browsers will either have to be updated or use an
+  older version of code-server.
+
+### Changed
+
+- Updated to Code 1.92.2.
+
 ## [4.91.0](https://github.com/coder/code-server/releases/tag/v4.91.0) - 2024-07-10
 
 Code v1.91.0
